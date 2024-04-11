@@ -3,16 +3,13 @@
 </p>
 
 <h1>Network Security Groups (NSGs) and Inspecting Traffic Between Azure Virtual Machines</h1>
-In this tutorial, we observe various network traffic to and from Azure Virtual Machines with Wireshark as well as experiment with Network Security Groups. <br />
+In this hands-on tutorial, you'll gain practical skills in managing network traffic for Azure virtual machines. We'll guide you through observing network traffic with Wireshark and experimenting with Network Security Groups (NSGs) to configure security policies. By the end, you'll be equipped to troubleshoot connectivity issues and implement robust security measures for your virtual machines in the Azure cloud. <br />
 
 
-<h2>Video Demonstration</h2>
-
-- ### [YouTube: Azure Virtual Machines, Wireshark, and Network Security Groups](https://www.youtube.com)
 
 <h2>Environments and Technologies Used</h2>
 
-- Microsoft Azure (Virtual Machines/Compute)
+- Microsoft Azure (Virtual Machines)
 - Remote Desktop
 - Various Command-Line Tools
 - Various Network Protocols (SSH, RDH, DNS, HTTP/S, ICMP)
@@ -23,35 +20,96 @@ In this tutorial, we observe various network traffic to and from Azure Virtual M
 - Windows 10 (21H2)
 - Ubuntu Server 20.04
 
-<h2>High-Level Steps</h2>
+<h1>Part 1: Set Up Resources at Microsoft Azure</h1>
 
-- Step 1
-- Step 2
-- Step 3
-- Step 4
+Before we begin, let's set up our Azure environment:
 
-<h2>Actions and Observations</h2>
+- Create a Resource Group.
+- Create a **Windows 10 Virtual Machine (VM1)** (with RDP Port) and assign it to the Resource Group you've created. Allow the VM1 to create a new Virtual Network (Vnet) and Subnet during setup.
+- Create a VM2 **Ubuntu 22.04 VM** (with SSH Port) and assign it to the same Resource Group. Allow the VM2 to create another Vnet and Subnet during the setup.
 
-<p>
-<img src="https://i.imgur.com/DJmEXEB.png" height="80%" width="80%" alt="Disk Sanitization Steps"/>
-</p>
-<p>
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-</p>
-<br />
+</br>
 
-<p>
-<img src="https://i.imgur.com/DJmEXEB.png" height="80%" width="80%" alt="Disk Sanitization Steps"/>
-</p>
-<p>
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-</p>
-<br />
+-----
 
-<p>
-<img src="https://i.imgur.com/DJmEXEB.png" height="80%" width="80%" alt="Disk Sanitization Steps"/>
-</p>
-<p>
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-</p>
-<br />
+<h1>Part 2: Observing Traffic Types</h1>
+
+Now that our Azure environment is set up, let's observe different types of network traffic using Wireshark:
+
+<h2>2.1- Observe ICMP Traffic</h2>
+
+ICMP (Internet Control Message Protocol) is used for diagnostic and control purposes. To observe ICMP traffic:
+
+- Use **Microsoft RD Client** to connect to your **Windows 10 Virtual Machine (VM1)** Public IP Address.
+- Install **Wireshark** within your **Windows 10 VM1**.
+- Open **Wireshark** and apply a filter for **ICMP** traffic.
+
+![image](https://github.com/anumkhanit/azure-wireshark-network-protocols/assets/144633389/c8b398f2-1665-4f33-9e61-0e9fb7f4171c)
+
+- Retrieve the **private IP address** of the **Ubuntu VM2** and ping it from within the **Windows 10 VM1** in the **Windows Powershell**.
+    - Ex = ping 10.0.0.5
+- Observe ping requests and replies in **Wireshark**.
+
+![image](https://github.com/anumkhanit/azure-wireshark-network-protocols/assets/144633389/dce4384b-131a-4bbd-8d62-9cf7b9622c69)
+
+- Ping a public website from the **Windows 10 VM1** and monitor the traffic in **Wireshark**.
+    - Ex = ping www.google.com
+- Start a continuous ping from your **Windows 10 V1M** to your **Ubuntu VM2**.
+    - Ex = ping 10.0.0.5 or www.google.com -t
+- Disable incoming (inbound) **ICMP** traffic in the **Network Security Group** of your **Ubuntu VM2** at **Microsoft Azure**. This allows you to block the connection through the virtual internet server since you've created a firewall in **Ubuntu VM2**
+    - Ex = Deny **ICMP** with custom name: DENY_ICMP_PING_FROM_ANYWHERE (or makeup anything)
+- Observe the **ICMP** traffic in **Wireshark** and the command line ping activity on the **Windows 10 VM1**.
+- Re-enable **ICMP** traffic in the **Network Security Group** of your **Ubuntu VM2**. What this means is that you've disable the firewall and you allow the virtual internet connection for two VMs to communicate.
+    - Ex = Allow **ICMP** with the same custom name you've created previously.
+- Observe the **ICMP** traffic in **Wireshark** and verify that the ping starts working.
+- Stop the ping activity.
+    - Use keys [Cntl^ + C]
+
+<h2>2.2- Observe SSH Traffic</h2>
+
+SSH (Secure Shell) is a protocol used for secure remote access. To observe SSH traffic:
+
+![image](https://github.com/anumkhanit/azure-wireshark-network-protocols/assets/144633389/17a98314-937c-4742-9045-405c3d26c277)
+
+- Filter for **SSH** traffic in **Wireshark**.
+- **SSH** into your **Ubuntu VM2** private IP Address through your **Windows 10 VM1**.
+- Observe **SSH** traffic in **Wireshark** while typing commands.
+    - Ex = ssh (username)@(VM2 private address) - note: it'll ask for a password, which will not show you what you type.
+    - Note: If you know any **Linux Command**, that is when you begin testing out or trying something different to the connection.
+- Exit the **SSH** connection by typing 'exit' and press [Enter].
+
+<h2>2.3- Observe DHCP Traffic</h2>
+
+DHCP (Dynamic Host Configuration Protocol) is used for automatically assigning IP addresses. To observe DHCP traffic:
+
+![image](https://github.com/anumkhanit/azure-wireshark-network-protocols/assets/144633389/8108b737-3c6e-4a71-85ef-eb3f7e9f7147)
+
+- Filter for **DHCP** traffic in **Wireshark**.
+- From your **Windows 10 VM1**, attempt to renew your VM's IP address using the command [ipconfig /renew].
+- Observe the **DHCP** traffic appearing in **Wireshark**.
+
+<h2>2.4- Observe DNS Traffic</h2>
+
+DNS (Domain Name System) is used for translating domain names to IP addresses. To observe DNS traffic:
+
+![image](https://github.com/anumkhanit/azure-wireshark-network-protocols/assets/144633389/9a7574d9-be64-4044-b44e-86d294bde8c6)
+
+- Filter for **DNS** traffic in **Wireshark**.
+- From your **Windows 10 VM1's** command line, use [nslookup] to query the IP addresses of 'google.com' and 'disney.com'.
+- Observe the **DNS** traffic in **Wireshark**.
+
+<h2>2.5 Observe RDP Traffic</h2>
+
+RDP (Remote Desktop Protocol) is used for remote desktop connections. To observe RDP traffic:
+
+![image](https://github.com/anumkhanit/azure-wireshark-network-protocols/assets/144633389/a73a2417-b719-4e44-9077-806ac029f831)
+
+- Filter for **RDP** traffic in **Wireshark** [tcp.port == 3389].
+- Observe the constant stream of traffic.
+
+</br>
+
+-----
+<h1>Conclusion</h1>
+In conclusion, we've gained experience in observing various network protocols using Wireshark. We've seen how to use Wireshark to monitor ICMP, SSH, DHCP, DNS, and RDP traffic, and how Network Security Groups can impact network traffic. Monitoring network traffic is a critical skill for IT professionals, and Wireshark is a valuable tool for gaining insights into network communication. Now you can use these skills to troubleshoot network connectivity problems or analyze security risks within your Azure environment.
+
